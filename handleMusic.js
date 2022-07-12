@@ -7,16 +7,25 @@ const cdThumb = $('.cd-thumb')
 const audio = $('#audio')
 const btnPlayPause = $('.btn-toggle-play')
 const player = $('.player')
-const progressbar = $('.progress')
+const progressBar = $('.progress')
+const nextBtn = $('.btn-next')
+const prevBtn = $('.btn-prev')
+const repeatBtn = $('.btn-repeat')
+const randomBtn = $('.btn-random')
 
 /** TASK
  * 1. Render song
  * 2. Scroll song
- * 3. Play/pause/seek
+ * 3. Play/pause/seek => optimate
+ * 4. next/pre
+ * 5. cdthub animation
  */
 
 const app = {
-    currentIndex: 6,
+    currentIndex: 0,
+    isPlaying: false,
+    isRepeat: false,
+    isRandom: false,
 
     songs: [
         {
@@ -90,10 +99,11 @@ const app = {
 
     handleUserEvent: function () {
         // phải đặt bên ngoài bởi vì giá trị này sẽ không đổi khi mà scroll
+        var _this = this
         var cdWidth = cd.offsetWidth
         var handleScroll
         var currentWidth
-        var isPlaying = false
+
 
         document.onscroll = function () {
             // nếu đặt bên trong mỗi lần scroll giá trị sẽ bị thay đổi => function lỗi
@@ -103,67 +113,151 @@ const app = {
             cd.style.opacity = currentWidth / cdWidth
         }
 
+        cbAnimation = cd.animate([{
+            transform: "rotate(360deg)"
+        }], {
+            duration: 10000,
+            iterations: Infinity
+        })
+        cbAnimation.pause()
+
+
+        repeatBtn.onclick = function () {
+            _this.isRepeat = !_this.isRepeat
+            repeatBtn.classList.toggle('active', isRepeat)
+        }
+
+        randomBtn.onclick = function () {
+            _this.isRandom = !_this.isRandom
+            randomBtn.classList.toggle('active', _this.isRandom)
+        }
+
+        audio.onended = function () {
+            if (_this.isRepeat) {
+                audio.play()
+            }else{
+                nextBtn.click()
+            }
+        }
+
 
         btnPlayPause.onclick = function () {
-            if (isPlaying) {
+            if (_this.isPlaying) {
                 audio.pause()
-            } 
-            else{
+                cbAnimation.pause()
+            }
+            else {
                 audio.play()
+                cbAnimation.play()
                 audio.volume = 0.5
             }
         }
 
-        audio.onplay = function(){
-            isPlaying = true
+        audio.onplay = function () {
+            _this.isPlaying = true
             player.classList.add('playing')
         }
-        audio.onpause = function(){
-            isPlaying = false
+
+        audio.onpause = function () {
+            _this.isPlaying = false
             player.classList.remove('playing')
         }
 
-        window.onkeyup = function(e){
-            switch(e.which){
+        audio.ontimeupdate = function () {
+            if (audio.duration) {
+                progressBar.value = Math.floor(audio.currentTime / audio.duration * 100)
+                // (audio.currentTime * 100 / audio.duration)
+            }
+        }
+
+        window.onkeyup = function (e) {
+            switch (e.which) {
                 case 77:
-                    if(audio.volume != 0){
+                    if (audio.volume != 0) {
                         audio.volume = 0
-                    }else{
+                    } else {
                         audio.volume = 1
                     }
                     break
                 case 188:
-                    if(audio.volume > 0){
+                    if (audio.volume > 0) {
                         audio.volume = audio.volume - .1
-                        console.log(audio.volume);
                     }
                     break
                 case 190:
-                    if(audio.volume < 1){
+                    if (audio.volume < 1) {
                         audio.volume = audio.volume + .1
-                        console.log(audio.volume);
                     }
                     break
-                    default:
-                        console.log(audio.volume);
-
+                default:
             }
+        }
+
+        progressBar.oninput = function (e) {
+            audio.currentTime = (progressBar.value * audio.duration) / 100
+        }
+
+        nextBtn.onclick = function () {
+            if (!_this.isRandom) {
+                _this.nextSong()
+            } else {
+                _this.randomSong()
+            }
+            audio.play()
+            cbAnimation.play()
+        }
+
+        prevBtn.onclick = function () {
+            if (!_this.isRandom) {
+                _this.prevSong()
+            } else {
+                _this.randomSong()
+            }
+            audio.play()
+            cbAnimation.play()
         }
 
     },
 
+    /**
+     * Xử lý
+     */
+
+    nextSong: function () {
+        this.currentIndex++
+        if (this.currentIndex > this.songs.length - 1) {
+            this.currentIndex = 0
+        }
+        this.loadSong()
+    },
+
+    prevSong: function () {
+        this.currentIndex--
+        if (this.currentIndex < 0) {
+            this.currentIndex = this.songs.length - 1
+        }
+        this.loadSong()
+    },
+
+    randomSong: function () {
+        do {
+            var randomIndex = Math.floor(Math.random() * this.songs.length)
+        } while (this.currentIndex === randomIndex)
+        this.currentIndex = randomIndex
+        this.loadSong()
+    },
+
+
     loadSong: function () {
-        console.log(this.currentsong);
         songName.innerText = this.currentsong.name;
         audio.src = this.currentsong.path
-        cdThumb.style.background = `url(${this.currentsong.image}) no-repeat center / contain`;
+        cdThumb.style.background = `url(${this.currentsong.image}) center / contain`;
     },
 
     start: function () {
         this.defaultProperties()
         this.render()
         this.loadSong()
-
         this.handleUserEvent()
     }
 }
