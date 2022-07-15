@@ -123,6 +123,15 @@ const app = {
             }
         }
 
+        getSongbyIndex = function(indexSong){
+            Array.from(allSong).forEach(function(song){
+                var activeSong = song.getAttribute('data-index');
+                if(activeSong == indexSong){
+                    song.classList.add('active')
+                }
+            })
+        }
+
         resetActiveSong = function(){
             Array.from(allSong).forEach(function(song){
                 if(song.matches('.song.active')){
@@ -138,8 +147,8 @@ const app = {
                 if(songElement){
                     songElement.classList.add('active')
                     _this.playSong(songElement.getAttribute('data-index'))
-                    audio.volume = 0.3
                     audio.play()
+                    cbAnimation.play()
                 }
             }
         }
@@ -244,6 +253,8 @@ const app = {
             }
             audio.play()
             cbAnimation.play()
+            resetActiveSong()
+            getSongbyIndex(_this.currentIndex)
             _this.scrollIntoActiveSong()
         }
 
@@ -263,14 +274,13 @@ const app = {
      * Xử lý
      */
     scrollIntoActiveSong(){
-        console.log($('.song.active'));
         setTimeout(() => {
             $('.song.active').scrollIntoView({
                 behavior: "smooth",
                 block: "end", 
-                inline: "nearest"
+                inline: "center"
             })
-        }, 500);
+        }, 200);
     },
 
     playSong(index){
