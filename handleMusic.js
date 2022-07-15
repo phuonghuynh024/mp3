@@ -17,8 +17,11 @@ const randomBtn = $('.btn-random')
  * 1. Render song
  * 2. Scroll song
  * 3. Play/pause/seek => optimate
- * 4. next/pre
+ * 4. next/pre/next/repeat/random
  * 5. cdthub animation
+ * 6. play song in playList
+ * 7. focus into playList
+ * 8. store the setting
  */
 
 const app = {
@@ -26,6 +29,7 @@ const app = {
     isPlaying: false,
     isRepeat: false,
     isRandom: false,
+
 
     songs: [
         {
@@ -71,19 +75,19 @@ const app = {
             image: "./assets/img/blankspace.jpg"
         }],
 
+
     render: function () {
-        var renderHtml = this.songs.map(function (song) {
+        var renderHtml = this.songs.map(function (song, index) {
             return `
-            <div class="song">
-            <div class="thumb" style="background-image: url('${song.image}')">
-            </div>
-            <div class="body">
-              <h3 class="title">${song.name}</h3>
-              <p class="author">${song.singer}</p>
-            </div>
-            <div class="option">
-              <i class="fas fa-ellipsis-h"></i>
-            </div>
+            <div class="song" data-index=${index} }>
+                <div class="thumb" style="background-image: url('${song.image}')"></div>
+                <div class="body">
+                <h3 class="title">${song.name}</h3>
+                <p class="author">${song.singer}</p>
+                </div>
+                <div class="option">
+                <i class="fas fa-ellipsis-h"></i>
+                </div>
           </div>`
         })
         playList.innerHTML = renderHtml.join('')
@@ -99,11 +103,46 @@ const app = {
 
     handleUserEvent: function () {
         // phải đặt bên ngoài bởi vì giá trị này sẽ không đổi khi mà scroll
+
         var _this = this
         var cdWidth = cd.offsetWidth
         var handleScroll
         var currentWidth
+        var allSong =  $$('.song')
 
+        getSong = function(songElement){
+            if(songElement.matches('.song')){
+                return songElement
+            }else{
+                while (songElement.parentElement){
+                    if(songElement.matches('.song')){
+                        return songElement
+                    }
+                    songElement = songElement.parentElement
+                }
+            }
+        }
+
+        resetActiveSong = function(){
+            Array.from(allSong).forEach(function(song){
+                if(song.matches('.song.active')){
+                    song.classList.remove('active')
+                }
+            })
+        }
+
+        playList.onclick = function (e) {
+            resetActiveSong()
+            if(!e.target.matches('.playlist')){
+                var songElement = getSong(e.target)
+                if(songElement){
+                    songElement.classList.add('active')
+                    _this.playSong(songElement.getAttribute('data-index'))
+                    audio.volume = 0.3
+                    audio.play()
+                }
+            }
+        }
 
         document.onscroll = function () {
             // nếu đặt bên trong mỗi lần scroll giá trị sẽ bị thay đổi => function lỗi
@@ -135,7 +174,7 @@ const app = {
         audio.onended = function () {
             if (_this.isRepeat) {
                 audio.play()
-            }else{
+            } else {
                 nextBtn.click()
             }
         }
@@ -205,6 +244,7 @@ const app = {
             }
             audio.play()
             cbAnimation.play()
+            _this.scrollIntoActiveSong()
         }
 
         prevBtn.onclick = function () {
@@ -222,8 +262,23 @@ const app = {
     /**
      * Xử lý
      */
+    scrollIntoActiveSong(){
+        console.log($('.song.active'));
+        setTimeout(() => {
+            $('.song.active').scrollIntoView({
+                behavior: "smooth",
+                block: "end", 
+                inline: "nearest"
+            })
+        }, 500);
+    },
 
-    nextSong: function () {
+    playSong(index){
+        this.currentIndex = index
+        this.loadSong()
+    },
+
+    nextSong() {
         this.currentIndex++
         if (this.currentIndex > this.songs.length - 1) {
             this.currentIndex = 0
@@ -254,11 +309,13 @@ const app = {
         cdThumb.style.background = `url(${this.currentsong.image}) center / contain`;
     },
 
+
     start: function () {
         this.defaultProperties()
         this.render()
         this.loadSong()
         this.handleUserEvent()
+        
     }
 }
 
